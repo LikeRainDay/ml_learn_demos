@@ -14,12 +14,26 @@ from nltk.corpus import stopwords
 from nltk.cluster.util import cosine_distance
 import numpy as np
 import networkx as nx
+import re
+
+import matplotlib.pyplot as plt
+
+
+# 导入停用词库
+def chinese_stopwords():
+    stopword = []
+    cfp = open('files/cn_stopwords.txt', 'r+')  # 停用词的txt文件
+    for line in cfp:
+        for word in line.split():
+            stopword.append(word)
+    cfp.close()
+    return stopword
 
 
 def read_article(file_name):
     file = open(file_name, "r")
     filedata = file.readlines()
-    article = filedata[0].split("。")
+    article = re.split("[.。]", filedata[0])
     sentences = []
 
     for sentence in article:
@@ -72,7 +86,8 @@ def build_similarity_matrix(sentences, stop_words):
 
 def generate_summary(file_name, top_n=5):
     nltk.download("stopwords")
-    stop_words = stopwords.words('english')
+    cn_stop_words = chinese_stopwords()
+    stop_words = list(set(stopwords.words('english') + cn_stop_words))
     summarize_text = []
 
     # Step 1 - Read text anc split it
@@ -89,6 +104,16 @@ def generate_summary(file_name, top_n=5):
     ranked_sentence = sorted(((scores[i], s) for i, s in enumerate(sentences)), reverse=True)
     print("Indexes of top ranked_sentence order are ", ranked_sentence)
 
+    # draw graph
+    layout = nx.spring_layout(sentence_similarity_graph)
+    plt.figure(1)
+    nx.draw(sentence_similarity_graph, pos=layout, node_color='y', with_labels=True)
+
+    plt.figure(2)
+    nx.draw(sentence_similarity_graph, pos=layout, node_size=[x * 6000 for x in scores.values()], node_color='m',
+            with_labels=True)
+    plt.show()
+
     for i in range(top_n):
         summarize_text.append(" ".join(ranked_sentence[i][1]))
 
@@ -97,5 +122,5 @@ def generate_summary(file_name, top_n=5):
 
 
 if __name__ == '__main__':
-    # generate_summary("files/msft.txt", 2)
-    generate_summary("files/test.txt", 2)
+    generate_summary("files/msft.txt", 2)
+    # generate_summary("files/test.txt", 2)
